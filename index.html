@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOLF LABS | IDENTITY & ORIGINS ENGINE</title>
+    
+    <!-- LIBRARIES -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- FONTS -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --wolf-green: #2ecc71;
+            --wolf-dark: #050505;
+            --wolf-card: #0f0f0f;
+            --wolf-border: #222222;
+        }
+
+        body { 
+            background-color: var(--wolf-dark); 
+            color: white; 
+            font-family: 'Poppins', sans-serif;
+            margin: 0;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        .font-mono { font-family: 'JetBrains Mono', monospace; }
+
+        .scanlines {
+            position: fixed; inset: 0; pointer-events: none; z-index: 50;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.05) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            background-size: 100% 4px, 3px 100%;
+        }
+
+        .glow-green { text-shadow: 0 0 15px rgba(46, 204, 113, 0.6); }
+        .border-active { border-color: var(--wolf-green) !important; box-shadow: 0 0 20px rgba(46, 204, 113, 0.2); }
+        
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        button:active { transform: scale(0.96); }
+    </style>
+</head>
+<body>
+    <div id="root" class="h-full w-full"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- COMPONENTE DE ÍCONE BLINDADO ---
+        const Icon = ({ name, size = 24, className = "" }) => {
+            const containerRef = useRef(null);
+            useEffect(() => {
+                if (window.lucide && containerRef.current) {
+                    containerRef.current.innerHTML = `<i data-lucide="${name}"></i>`;
+                    window.lucide.createIcons({
+                        attrs: { width: size, height: size, class: className },
+                        portal: containerRef.current
+                    });
+                }
+            }, [name, size, className]);
+            return <span ref={containerRef} className="inline-flex items-center justify-center"></span>;
+        };
+
+        // --- DATABASE DE QUESTÕES (30 ITENS INTERCALADOS) ---
+        const tabData = {
+            tobe: [
+                { id: 1, type: "choice", cat: "IDENTITY", q: "Complete: 'I _____ Alex.'", options: ["is", "am", "are"], ans: "am", tip: "Eu sou = I AM.", trans: "Eu sou o Alex." },
+                { id: 2, type: "personal", cat: "WOLF DNA", q: "What is your name?", starter: "My name is... / I am...", tip: "Diga seu nome com confiança.", trans: "Qual o seu nome?" },
+                { id: 3, type: "choice", cat: "IDENTITY", q: "Complete: 'He _____ from Oxford.'", options: ["is", "am", "are"], ans: "is", tip: "He usa IS.", trans: "Ele é de Oxford." },
+                { id: 4, type: "logic", cat: "AGE LOGIC", q: "Qual a forma CORRETA para idade?", options: ["I have 25 years.", "I am 25 years old."], ans: "I am 25 years old.", tip: "Você É a idade (To Be).", trans: "Eu tenho 25 anos." },
+                { id: 5, type: "personal", cat: "WOLF DNA", q: "How old are you?", starter: "I am... years old.", tip: "Lembre-se da regra: você É a sua idade.", trans: "Quantos anos você tem?" },
+                { id: 6, type: "choice", cat: "IDENTITY", q: "Complete: 'They _____ students.'", options: ["is", "am", "are"], ans: "are", tip: "They usa ARE.", trans: "Eles são estudantes." },
+                { id: 7, type: "choice", cat: "GENDER", q: "Sarah is a woman. _____ name is Sarah.", options: ["His", "Her"], ans: "Her", tip: "Her = Dela.", trans: "O nome dela é Sarah." },
+                { id: 8, type: "choice", cat: "GENDER", q: "Tim is a man. _____ name is Tim.", options: ["His", "Her"], ans: "His", tip: "His = Dele.", trans: "O nome dele é Tim." },
+                { id: 9, type: "personal", cat: "WOLF DNA", q: "Are you a student?", starter: "Yes, I am. / No, I'm not.", tip: "Responda se você é um aluno.", trans: "Você é estudante?" },
+                { id: 10, type: "choice", cat: "NEGATIVES", q: "Negativa: 'I am _____ from London.'", options: ["no", "not", "isn't"], ans: "not", tip: "Negativa = AM + NOT.", trans: "Eu não sou de Londres." },
+                { id: 11, type: "choice", cat: "NEGATIVES", q: "Qual está correto?", options: ["He isn't Tim.", "He no is Tim."], ans: "He isn't Tim.", tip: "Contração de 'is not'.", trans: "Ele não é o Tim." },
+                { id: 12, type: "personal", cat: "WOLF DNA", q: "Are you tired today?", starter: "Yes, I am. / No, I'm not.", tip: "Descreva seu estado atual.", trans: "Você está cansado hoje?" },
+                { id: 13, type: "choice", cat: "QUESTIONS", q: "Pergunta: '_____ she happy?'", options: ["Is", "Am", "Are"], ans: "Is", tip: "Inverta para perguntar!", trans: "Ela está feliz?" },
+                { id: 14, type: "choice", cat: "QUESTIONS", q: "Pergunta: '_____ you ready?'", options: ["Is", "Am", "Are"], ans: "Are", tip: "You usa ARE.", trans: "Você está pronto?" },
+                { id: 15, type: "personal", cat: "WOLF DNA", q: "Are you happy in this class?", starter: "Yes, I am happy!", tip: "Fale sobre sua experiência agora.", trans: "Você está feliz nesta aula?" }
+            ],
+            origins: [
+                { id: 16, type: "choice", cat: "ORIGINS", q: "Question: 'Where _____ you from?'", options: ["is", "am", "are"], ans: "are", tip: "You usa ARE.", trans: "De onde você é?" },
+                { id: 17, type: "personal", cat: "WOLF DNA", q: "Where are you from?", starter: "I am from...", tip: "Diga sua cidade ou país.", trans: "De onde você é?" },
+                { id: 18, type: "choice", cat: "ORIGINS", q: "Nationality: 'She is from Japan. She is _____.'", options: ["Japan", "Japanese"], ans: "Japanese", tip: "Adjetivo de nacionalidade.", trans: "Ela é japonesa." },
+                { id: 19, type: "choice", cat: "ORIGINS", q: "Nationality: 'He is from Brazil. He is _____.'", options: ["Brazil", "Brazilian"], ans: "Brazilian", tip: "Brazil (País) / Brazilian (Nacionalidade).", trans: "Ele é brasileiro." },
+                { id: 20, type: "personal", cat: "WOLF DNA", q: "What is your nationality?", starter: "I am...", tip: "Diga sua nacionalidade em inglês.", trans: "Qual sua nacionalidade?" },
+                { id: 21, type: "choice", cat: "LIFESTYLE", q: "Home: 'I _____ in a house.'", options: ["am live", "live"], ans: "live", tip: "Verbo de ação direta.", trans: "Eu moro em uma casa." },
+                { id: 22, type: "choice", cat: "LIFESTYLE", q: "3rd Person: 'He _____ in a flat.'", options: ["live", "lives"], ans: "lives", tip: "He/She/It ganha 'S' no presente!", trans: "Ele mora em um apartamento." },
+                { id: 23, type: "personal", cat: "WOLF DNA", q: "Do you live in a house or flat?", starter: "I live in a...", tip: "House (Casa) / Flat (Apto).", trans: "Você mora em casa ou apartamento?" },
+                { id: 24, type: "choice", cat: "LIFESTYLE", q: "Company: 'I live _____ my own.'", options: ["on", "with", "at"], ans: "on", tip: "On my own = Sozinho.", trans: "Eu moro sozinho." },
+                { id: 25, type: "choice", cat: "LIFESTYLE", q: "Company: 'She lives _____ family.'", options: ["on", "with", "at"], ans: "with", tip: "With = Com.", trans: "Ela mora com a família." },
+                { id: 26, type: "personal", cat: "WOLF DNA", q: "Who do you live with?", starter: "I live with...", tip: "Mencione sua família ou colegas.", trans: "Com quem você mora?" },
+                { id: 27, type: "choice", cat: "SUMMARY", q: "Complete: 'I am _____ Brazil.'", options: ["from", "at", "in"], ans: "from", tip: "From indica origem.", trans: "Eu sou do Brasil." },
+                { id: 28, type: "choice", cat: "SUMMARY", q: "Complete: 'I live _____ London.'", options: ["from", "at", "in"], ans: "in", tip: "In indica localidade (dentro de).", trans: "Eu moro em Londres." },
+                { id: 29, type: "personal", cat: "WOLF DNA", q: "Is your city big or small?", starter: "It is...", tip: "Dê uma característica da sua cidade.", trans: "Sua cidade é grande ou pequena?" },
+                { id: 30, type: "personal", cat: "FINAL BOSS", q: "Are you ready to speak English?", starter: "Yes, I am ready!", tip: "Parabéns, missão cumprida!", trans: "Você está pronto?" }
+            ]
+        };
+
+        function App() {
+            const [view, setView] = useState('start');
+            const [activeTab, setActiveTab] = useState('tobe');
+            const [indices, setIndices] = useState({ tobe: 0, origins: 0 });
+            const [xp, setXp] = useState(0);
+            const [selected, setSelected] = useState(null);
+            const [feedback, setFeedback] = useState(null);
+            const [showTrans, setShowTrans] = useState(true);
+
+            const currentList = tabData[activeTab];
+            const currentIdx = indices[activeTab];
+            const currentQ = currentList[currentIdx];
+            const progress = ((currentIdx + 1) / currentList.length) * 100;
+
+            const handleAnswer = (opt) => {
+                if (feedback) return;
+                setSelected(opt);
+                const isCorrect = opt === currentQ.ans;
+                if (isCorrect) {
+                    setFeedback('correct');
+                    setXp(x => x + 100);
+                } else {
+                    setFeedback('wrong');
+                }
+            };
+
+            const next = () => {
+                setFeedback(null);
+                setSelected(null);
+                if (currentIdx < currentList.length - 1) {
+                    setIndices({ ...indices, [activeTab]: currentIdx + 1 });
+                } else if (activeTab === 'tobe') {
+                    setActiveTab('origins');
+                    setIndices(prev => ({ ...prev, origins: 0 }));
+                } else {
+                    setView('finish');
+                }
+            };
+
+            if (view === 'start') {
+                return (
+                    <div className="h-screen w-full flex flex-col items-center justify-center p-8 text-center fade-in bg-black">
+                        <div className="scanlines"></div>
+                        <div className="mb-8 p-10 rounded-full border-2 border-[#2ecc71] bg-[#2ecc71]/10 shadow-[0_0_60px_rgba(46,204,113,0.3)] animate-pulse">
+                            <Icon name="zap" size={100} className="text-[#2ecc71]" />
+                        </div>
+                        <h1 className="text-8xl font-black mb-4 tracking-tighter uppercase">WOLF <span className="text-[#2ecc71] glow-green">LABS</span></h1>
+                        <p className="text-2xl font-mono text-gray-500 tracking-[0.5em] mb-16 uppercase">Identity & Origins Engine v3.0</p>
+                        <button onClick={() => setView('lab')} className="bg-[#2ecc71] text-black font-black text-3xl px-20 py-6 rounded-full hover:scale-105 transition-all uppercase tracking-tighter shadow-2xl">Acessar Laboratório</button>
+                    </div>
+                );
+            }
+
+            if (view === 'finish') {
+                return (
+                    <div className="h-screen w-full flex flex-col items-center justify-center p-8 text-center fade-in bg-black">
+                        <div className="scanlines"></div>
+                        <Icon name="award" size={150} className="text-[#2ecc71] mb-10" />
+                        <h1 className="text-7xl font-black mb-6 uppercase tracking-tighter">Missão Completa</h1>
+                        <div className="text-[150px] font-black text-[#2ecc71] leading-none mb-10 tracking-tighter glow-green">{xp} XP</div>
+                        <button onClick={() => window.location.reload()} className="bg-white text-black font-black px-16 py-5 rounded-full text-2xl hover:bg-[#2ecc71] transition-all uppercase tracking-widest shadow-xl">Reiniciar Protocolo</button>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="h-screen w-full flex flex-col p-6 md:p-10 relative overflow-hidden bg-black select-none">
+                    <div className="scanlines"></div>
+
+                    {/* TOP BAR - FIXED HEIGHT */}
+                    <div className="flex justify-between items-center h-20 mb-6 z-20">
+                        <div className="flex items-center gap-6">
+                            <div className="w-14 h-14 bg-[#2ecc71] rounded-xl flex items-center justify-center text-black font-black text-3xl shadow-lg">W</div>
+                            <div className="hidden lg:block">
+                                <h3 className="font-black text-2xl leading-none uppercase tracking-tighter">Wolf OS</h3>
+                                <span className="text-[#2ecc71] text-xs font-mono tracking-widest font-bold">SESSION 02 // LAB MODE</span>
+                            </div>
+                        </div>
+
+                        {/* NAVIGATION TABS */}
+                        <div className="bg-[#111] p-1.5 rounded-full border border-[#222] flex gap-2 shadow-inner">
+                            <button 
+                                onClick={() => { setActiveTab('tobe'); setFeedback(null); setSelected(null); }}
+                                className={`px-8 py-3 rounded-full text-sm font-black transition-all uppercase ${activeTab === 'tobe' ? 'bg-[#2ecc71] text-black shadow-lg' : 'text-gray-600 hover:text-white'}`}
+                            >
+                                01. Verb To Be
+                            </button>
+                            <button 
+                                onClick={() => { setActiveTab('origins'); setFeedback(null); setSelected(null); }}
+                                className={`px-8 py-3 rounded-full text-sm font-black transition-all uppercase ${activeTab === 'origins' ? 'bg-[#2ecc71] text-black shadow-lg' : 'text-gray-600 hover:text-white'}`}
+                            >
+                                02. Origins Lab
+                            </button>
+                        </div>
+
+                        {/* TEACHER CONTROLS */}
+                        <div className="flex gap-6 items-center">
+                            <button 
+                                onClick={() => setShowTrans(!showTrans)}
+                                className={`flex items-center gap-3 px-5 py-3 rounded-full border transition-all ${showTrans ? 'bg-[#2ecc71]/10 border-[#2ecc71] text-[#2ecc71]' : 'bg-[#111] border-[#333] text-gray-600'}`}
+                            >
+                                <Icon name="languages" size={20} />
+                                <span className="text-xs font-black uppercase tracking-widest">{showTrans ? 'Translation: ON' : 'Translation: OFF'}</span>
+                            </button>
+                            <div className="text-right border-l border-[#222] pl-6">
+                                <p className="text-gray-600 text-[10px] font-bold uppercase tracking-widest mb-1 leading-none">Global Score</p>
+                                <p className="text-[#2ecc71] font-black text-3xl leading-none">{xp} XP</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* MAIN CONTENT AREA - EXPANDS FULLY */}
+                    <div className="flex-1 w-full flex items-center justify-center z-20 pb-20">
+                        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 w-full h-full max-w-[1600px]">
+                            
+                            {/* LEFT: Main Task Card */}
+                            <div className="md:col-span-8 flex flex-col h-full">
+                                <div className="bg-[#0f0f0f] border border-[#222] rounded-[3rem] p-12 flex flex-col h-full shadow-2xl relative overflow-hidden transition-all duration-500">
+                                    <div className="absolute top-0 right-0 p-12 opacity-[0.03] pointer-events-none">
+                                        <Icon name={currentQ.type === 'personal' ? 'mic-2' : 'cpu'} size={350} />
+                                    </div>
+
+                                    <div className="flex justify-between items-center mb-8">
+                                        <div className="flex items-center gap-4">
+                                            <span className="bg-[#2ecc71] text-black px-5 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest">
+                                                STAGE: {currentQ.cat}
+                                            </span>
+                                            {currentQ.type === 'personal' && (
+                                                <span className="bg-white text-black px-5 py-1.5 rounded-full text-[11px] font-black uppercase tracking-widest animate-pulse">
+                                                    Speaking Mission
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className="text-gray-700 font-mono text-lg font-bold tracking-tighter">
+                                            {currentIdx + 1} / {currentList.length}
+                                        </span>
+                                    </div>
+
+                                    <div className="flex-1 flex flex-col justify-center">
+                                        <h2 className="text-5xl lg:text-7xl font-black mb-6 leading-tight tracking-tighter uppercase glow-green drop-shadow-2xl">
+                                            {currentQ.q}
+                                        </h2>
+
+                                        {showTrans && currentQ.trans && (
+                                            <p className="text-gray-500 italic text-2xl lg:text-3xl mb-12 flex items-center gap-4 border-l-4 border-gray-800 pl-6 fade-in">
+                                                {currentQ.trans}
+                                            </p>
+                                        )}
+
+                                        {/* OPTIONS GRID */}
+                                        {currentQ.type === 'personal' ? (
+                                            <div className="p-12 bg-[#2ecc71]/5 border-2 border-[#2ecc71]/20 rounded-[2.5rem] border-dashed flex flex-col items-center justify-center text-center gap-8">
+                                                <div className="w-24 h-24 bg-[#2ecc71] rounded-full flex items-center justify-center text-black shadow-lg shadow-[#2ecc71]/30">
+                                                    <Icon name="mic" size={48} />
+                                                </div>
+                                                <div className="max-w-md">
+                                                    <p className="text-3xl font-black text-white uppercase tracking-tighter mb-2">Interact with Teacher</p>
+                                                    <p className="text-[#2ecc71] text-sm font-mono uppercase tracking-[0.2em] opacity-80">Use the speaking hub below to construct your response.</p>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                                {currentQ.options.map((opt, i) => (
+                                                    <button 
+                                                        key={i}
+                                                        onClick={() => handleAnswer(opt)}
+                                                        disabled={feedback !== null}
+                                                        className={`p-8 rounded-[2rem] border-4 text-3xl font-black transition-all text-left flex justify-between items-center group
+                                                            ${selected === opt 
+                                                                ? (opt === currentQ.ans ? 'border-[#2ecc71] bg-[#2ecc71]/10 text-[#2ecc71] border-active' : 'border-red-500 bg-red-500/10 text-red-500')
+                                                                : 'border-[#1a1a1a] bg-[#111] hover:border-gray-600 hover:bg-[#151515] text-white'
+                                                            }
+                                                        `}
+                                                    >
+                                                        <span>{opt}</span>
+                                                        {selected === opt && (
+                                                            <Icon name={opt === currentQ.ans ? "check-circle" : "alert-circle"} size={40} />
+                                                        )}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* RIGHT: Sidebar Info */}
+                            <div className="md:col-span-4 flex flex-col h-full gap-8">
+                                <div className="bg-[#0f0f0f] border border-[#222] rounded-[3rem] p-10 flex flex-col h-full shadow-xl relative overflow-hidden">
+                                    <div className="absolute -bottom-10 -right-10 opacity-[0.02] pointer-events-none">
+                                        <Icon name="shield" size={250} />
+                                    </div>
+
+                                    <h4 className="text-gray-500 text-xs font-black uppercase tracking-[0.4em] mb-10 border-b border-[#222] pb-6 flex items-center gap-3">
+                                        <Icon name="brain-circuit" size={18} className="text-[#2ecc71]" /> Intelligence Core
+                                    </h4>
+
+                                    <div className="flex-1">
+                                        <p className="text-[#2ecc71] text-xs font-black uppercase mb-4 tracking-widest flex items-center gap-3 italic">
+                                            <Icon name="info" size={14} /> Wolf Insight Protocol:
+                                        </p>
+                                        <div className="bg-black p-8 rounded-[2rem] border border-[#222] shadow-inner h-full max-h-[300px] overflow-y-auto">
+                                            <p className="text-gray-400 text-lg leading-relaxed font-mono italic">
+                                                {currentQ.tip}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-10">
+                                        {currentQ.type === 'personal' || feedback ? (
+                                            <button 
+                                                onClick={next}
+                                                className="w-full bg-[#2ecc71] text-black font-black py-8 rounded-[2rem] hover:scale-[1.03] active:scale-95 transition-all uppercase flex items-center justify-center gap-4 text-2xl shadow-2xl shadow-[#2ecc71]/20 tracking-tighter"
+                                            >
+                                                Next Procedure <Icon name="arrow-right" size={28} />
+                                            </button>
+                                        ) : (
+                                            <div className="text-center py-10 border-4 border-dashed border-[#1a1a1a] rounded-[2rem] text-gray-800 font-mono text-xs animate-pulse uppercase tracking-[0.3em] font-black">
+                                                Awaiting Data...
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    {/* SPEAKING HUB - ANCHORED BOTTOM */}
+                    <div className="fixed bottom-10 left-10 right-10 z-30">
+                        <div className="bg-[#0f0f0f] border-l-[16px] border-[#2ecc71] p-10 rounded-r-[3rem] flex items-center justify-between shadow-2xl border-y border-r border-[#222]">
+                            <div className="flex flex-col">
+                                <div className="flex items-center gap-3 mb-3">
+                                    <div className="w-3 h-3 bg-[#2ecc71] rounded-full animate-pulse shadow-[0_0_15px_#2ecc71]"></div>
+                                    <span className="text-[#2ecc71] text-xs font-black uppercase tracking-[0.3em]">Oral Production Starter</span>
+                                </div>
+                                <div className="flex flex-wrap items-baseline gap-8">
+                                    <h2 className="text-5xl lg:text-6xl font-black tracking-tighter text-white uppercase italic leading-none">
+                                        {currentQ.type === 'personal' ? `"${currentQ.starter}"` : '"The answer is..."'}
+                                    </h2>
+                                    {showTrans && <span className="text-gray-700 italic text-xl font-bold border-l border-[#333] pl-8 max-w-sm hidden xl:block leading-tight uppercase tracking-tighter opacity-50">
+                                        Use this block to initiate your response orally.
+                                    </span>}
+                                </div>
+                            </div>
+                            <div className="hidden lg:flex items-center gap-4 border-l border-[#222] pl-10">
+                                <div className="w-24 h-24 rounded-3xl bg-[#2ecc71]/5 border-2 border-[#2ecc71]/10 flex items-center justify-center text-[#2ecc71] shadow-inner">
+                                    <Icon name="mic" size={48} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* FULL WIDTH PROGRESS BAR */}
+                    <div className="fixed bottom-0 left-0 w-full h-2 bg-[#050505]">
+                        <div 
+                            className="h-full bg-[#2ecc71] transition-all duration-700 shadow-[0_0_30px_#2ecc71]" 
+                            style={{ width: `${progress}%` }}></div>
+                    </div>
+
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
